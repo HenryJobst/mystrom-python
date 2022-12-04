@@ -1,0 +1,59 @@
+version: '3.4'
+
+services:
+  db:
+    image: mariadb:10.9.4
+    environment:
+      MYSQL_ROOT_PASSWORD: dbadmin
+      MYSQL_DATABASE: mystrom
+      MYSQL_USER: mystrom
+      MYSQL_PASSWORD: mystrom
+    restart: unless-stopped
+    expose:
+      - '3306'
+    ports:
+      - '3336:3306'
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - mystrom
+
+
+  interface:
+    image: nksdaoxxso/mystrom-django-interface:latest
+    environment:
+      - DB_NAME=mystrom
+      - DB_USER=mystrom
+      - DB_PASSWORD=mystrom
+      - DB_HOST=db
+      - DB_PORT=3306
+      - SECRET_KEY=myHiddenSecretKey
+      - ALLOWED_HOSTS=localhost
+      - CORS_ORIGIN_ALLOW_ALL=False
+      - CORS_ORIGIN_WHITELIST=http://localhost:8000,http://jobst24.de
+      - TZ=Europe/Berlin
+    networks:
+      - mystrom
+    ports:
+      - '8000:8000'
+    depends_on:
+      - db
+   
+  app:
+    image: nksdaoxxso/mystrom-python:latest
+    restart: unless-stopped
+    environment:
+      SQL_URL: mysql+pymysql://mystrom:mystrom@db:3306/mystrom
+    networks:
+      - mystrom
+    depends_on:
+      - db
+      - interface
+
+volumes:
+  db:
+
+networks:
+  mystrom:
+    driver: bridge
+    
