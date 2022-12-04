@@ -1,45 +1,57 @@
-import schedule
-import time
-import requests
 import json
+import time
 
-from base import Base, session_factory
+import requests
+import schedule
 
+from base import session_factory
 from models.mystrom_device import MystromDevice
 from models.mystrom_result import MystromResult
+
 
 @schedule.repeat(schedule.every(1).minutes)
 def trigger():
     for device in get_active_devices():
         request_data_and_store(device)
 
+
 def get_active_devices():
-    device_query = session.query(MystromDevice).filter(MystromDevice.active == True)
-    return device_query.all()
+    return session.query(MystromDevice).filter(MystromDevice.active).all()
+
 
 def request_data_and_store(device):
     try:
         response = requests.get(f'http://{device.ip}/report')
-    except requests.ConnectionError as e:
-        print(f'Device {device.name} with ip address {device.ip} seems to be not reachable.')
+    except requests.ConnectionError:
+        print(f'Device {device.name} with ip address {device.ip} seems to be '
+              f'not reachable.')
         return
-    except requests.Timeout as e:
-        print(f'Request to device {device.name} with ip address {device.ip} timed out.')
+    except requests.Timeout:
+        print(f'Request to device {device.name} with ip address {device.ip} '
+              f'timed out.')
         return
-    except requests.RequestException as e:
-        print(f'Request to device {device.name} with ip address {device.ip} failed.')
+    except requests.RequestException:
+        print(f'Request to device {device.name} with ip address {device.ip} '
+              f'failed.')
         return
 
     try:
         response = json.loads(response.text)
     except json.decoder.JSONDecodeError:
-        print(f'Request to device {device.name} with ip address {device.ip} returns invalid JSON response.')
+        print(f'Request to device {device.name} with ip address {device.ip} '
+              f'returns invalid JSON response.')
         return
 
-    mystrom_result = MystromResult(device_id=device.id, power=response["power"], ws=response["Ws"], relay=response["relay"], temperature=response["temperature"])
+    mystrom_result = MystromResult(device_id=device.id,
+                                   power=response["power"],
+                                   ws=response["Ws"],
+                                   relay=response["relay"],
+                                   temperature=response["temperature"])
 
+    print(mystrom_result.__repr__())
     session.add(mystrom_result, device)
     session.commit()
+
 
 if __name__ == '__main__':
     session = session_factory()
