@@ -8,6 +8,7 @@ services:
       MYSQL_DATABASE: mystrom
       MYSQL_USER: mystrom
       MYSQL_PASSWORD: mystrom
+      TZ: Europe/Berlin
     restart: unless-stopped
     expose:
       - '3306'
@@ -21,6 +22,7 @@ services:
 
   interface:
     image: nksdaoxxso/mystrom-django-interface:latest
+    restart: unless-stopped
     environment:
       - DB_NAME=mystrom
       - DB_USER=mystrom
